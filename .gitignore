@@ -1,0 +1,15 @@
+# Python 编译文件
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# 环境变量
+.env
+.env.local
+.env.*.local
+
+# 部署、系统
+.DS_Store
+*.pid
+*.pid.lock
