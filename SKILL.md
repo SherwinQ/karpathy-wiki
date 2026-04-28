@@ -151,7 +151,8 @@ bash .agents/skills/karpathy-wiki/scripts/init-wiki.sh [目标目录] [--templat
    - 执行 `obsidian folders folder="wiki"` 查询已有领域
    - 无匹配 → 暂停，建议目录名，等用户确认
 3. **加载上下文**（遵循 Token 预算）：
-   - L1：读 `purpose.md` + `Concept Index.md` 了解知识库目标和已有文章
+   - L1：读 `Concept Index.md` 了解已有文章
+   - L1：读 `purpose.md`（如不存在，提示用户运行 `init-wiki.sh` 补创建，然后继续）
    - L3：读目标原始资料 + 已有文章全文
 4. **增量缓存检查**：
    - 读取 raw 文件的 `content_hash`
@@ -193,7 +194,7 @@ bash .agents/skills/karpathy-wiki/scripts/init-wiki.sh [目标目录] [--templat
 
 ### Phase A — 从 Wiki 回答
 
-1. **读取 purpose.md**（L0-L1），确保回答方向与知识库目标一致
+1. **读取 purpose.md**（L0-L1，如不存在则跳过），确保回答方向与知识库目标一致
 2. **先读 Concept Index**（L1），扫描定位候选
 3. **定位相关文章**：小规模索引足够，大规模补充 `obsidian search`
 4. **完整阅读相关文章**（L3），跟随一层 `[[wikilink]]`
@@ -263,9 +264,11 @@ done
 ```
 
 **3. 被引用最多但无独立条目的概念**
-```
-# 查找 [[概念名]] 但概念名.md 不存在
-grep -roh '\[\[([^/\]|]*)\]\]' wiki/ | sort | uniq -c | sort -rn | head -20
+```bash
+# Extract wikilink targets, count occurrences, check if page exists
+grep -roh '\[\[[^]/|]*' wiki/ | sed 's/\[\[//' | sort | uniq -c | sort -rn | head -20 | while read count name; do
+  find wiki/ -name "${name}.md" -print -quit | grep -q . || echo "$count $name (MISSING)"
+done
 ```
 
 **4. 知识集群发现**
@@ -330,8 +333,9 @@ grep -roh '\[\[([^/\]|]*)\]\]' wiki/ | sort | uniq -c | sort -rn | head -20
    - **Source Summary 页面** → 删除
 3. **清理索引**：从 Concept Index、Dashboard、Source Index 移除相关条目
 4. **清理 wikilink**：删除指向已删页面的 `[[wikilinks]]`
-5. **清理缓存**：从 `.cache/content_hashes.json` 和 `.cache/compiled_hashes.json` 移除
-6. **追加 log.md**
+5. **删除源文件**：`rm raw/<被删文件>.md`
+6. **清理缓存**：从 `.cache/content_hashes.json` 和 `.cache/compiled_hashes.json` 移除
+7. **追加 log.md**
 
 ---
 
