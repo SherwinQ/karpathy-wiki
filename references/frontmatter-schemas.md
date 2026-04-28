@@ -69,6 +69,9 @@ source_kind: article | paper | blog-post | github-readme | documentation | bookm
 source_url: https://example.com/article
 scraped: YYYY-MM-DD
 classified_as: concept  # Classify 步骤的结果
+content_hash: sha256abcdef...  # 正文内容的 SHA256 哈希
+review_status: resolved  # pending | resolved | skipped
+review_notes: ""  # 审阅备注（仅 review_status: pending 时有意义）
 tags:
   - <领域>
   - raw
@@ -82,6 +85,9 @@ tags:
 |------|------|------|
 | `source_kind` | ✅ | 来源类型。新增 `transcript`（演讲/访谈记录）、`report`（报告） |
 | `classified_as` | ❌ | Ingest Classify 步骤的结果，预判该来源最适合编译为哪种实体类型 |
+| `content_hash` | ✅ | 正文内容的 SHA256 哈希，用于增量缓存去重 |
+| `review_status` | ❌ | 审阅状态：`pending`（需用户判断）、`resolved`（已处理）、`skipped`（跳过）。默认 `resolved` |
+| `review_notes` | ❌ | 审阅备注，说明为何需要人工审阅及建议操作 |
 
 ---
 
@@ -140,10 +146,33 @@ updated: YYYY-MM-DD
 
 ---
 
+## purpose.md — `purpose.md`
+
+```yaml
+---
+title: 知识库目标
+type: purpose
+scenario: general | research | reading | project
+updated: YYYY-MM-DD
+---
+```
+
+### 字段说明
+
+| 字段 | 必需 | 说明 |
+|------|------|------|
+| `title` | ✅ | 知识库目标标题 |
+| `type` | ✅ | 固定为 `purpose` |
+| `scenario` | ❌ | 场景模板类型，记录初始化时选用的模板 |
+| `updated` | ✅ | 最近一次更新日期 |
+
+---
+
 ## 快速参考
 
 | 文件类型 | 路径 | type | stage | entity_type |
 |---------|------|------|-------|-------------|
+| 知识库目标 | `purpose.md` | `purpose` | — | — |
 | Wiki 文章 | `wiki/<领域>/` | `wiki` | `compiled` | 7 种之一 |
 | 原始资料 | `raw/` | `source` | `raw` | — |
 | 查询结果 | `outputs/queries/` | `output` | `query` / `promoted` | — |

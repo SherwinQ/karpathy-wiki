@@ -10,13 +10,14 @@
 （可选）一段简短上下文、发现或决策
 ```
 
-**操作类型：** `ingest` · `compile` · `query` · `promote` · `split` · `lint`
+**操作类型：** `ingest` · `compile` · `query` · `promote` · `research` · `delete` · `split` · `lint`
 
 **快速查询：**
 
 ```bash
 grep "^## \[" log.md | tail -10                # 最近 10 条
 grep "^## \[.*compile" log.md | wc -l          # 编译总次数
+grep "^## \[.*research" log.md | wc -l         # 研究总次数
 grep "^## \[2026-04" log.md                    # 某月所有操作
 ```
 

@@ -1,39 +1,75 @@
 #!/usr/bin/env bash
-# 初始化 Karpathy Wiki 知识库目录结构
+# Initialize Karpathy Wiki knowledge base directory structure
 #
-# 用法：bash init-wiki.sh [目标目录]
-# 默认目标目录：当前目录下的 wiki/
+# Usage: bash init-wiki.sh [target_dir] [--template <name>]
+# Default target: wiki/ in current directory
 #
-# 示例：
-#   bash init-wiki.sh              # 在 ./wiki/ 创建
-#   bash init-wiki.sh ~/notes/kb   # 在指定目录创建
+# Templates:
+#   general    - General knowledge base (default)
+#   research   - Academic research
+#   reading    - Reading notes
+#   project    - Project documentation
+#
+# Examples:
+#   bash init-wiki.sh                            # ./wiki/, general template
+#   bash init-wiki.sh ~/notes/kb                 # specified dir, general template
+#   bash init-wiki.sh ~/notes/kb --template research
 
 set -euo pipefail
 
-TARGET_DIR="${1:-wiki}"
+TARGET_DIR="wiki"
+TEMPLATE="general"
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --template|-t)
+      TEMPLATE="${2:?ERROR: --template requires a name (general|research|reading|project)}"
+      shift 2
+      ;;
+    -*)
+      echo "WARNING: Unknown option $1" >&2
+      shift
+      ;;
+    *)
+      TARGET_DIR="$1"
+      shift
+      ;;
+  esac
+done
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ASSETS="$SCRIPT_DIR/../assets"
 TODAY="$(date +%Y-%m-%d)"
 
+# Validate template name
+case "$TEMPLATE" in
+  general|research|reading|project) ;;
+  *)
+    echo "ERROR: Unknown template '$TEMPLATE'. Available: general, research, reading, project" >&2
+    exit 1
+    ;;
+esac
+
 if [[ -e "$TARGET_DIR" ]]; then
-  echo "ERROR: $TARGET_DIR 已存在。请选择其他路径或先删除。" >&2
+  echo "ERROR: $TARGET_DIR already exists. Choose another path or remove it first." >&2
   exit 1
 fi
 
 if [[ ! -d "$ASSETS" ]]; then
-  echo "WARNING: assets 目录未找到 ($ASSETS)，将创建空模板文件。" >&2
+  echo "WARNING: assets directory not found ($ASSETS), will create empty template files." >&2
   ASSETS=""
 fi
 
-echo "正在初始化知识库：$TARGET_DIR"
+echo "Initializing wiki: $TARGET_DIR (template: $TEMPLATE)"
 
-# 创建目录结构
+# Create directory structure
 mkdir -p "$TARGET_DIR/raw" \
   "$TARGET_DIR/wiki/index" \
   "$TARGET_DIR/outputs/queries" \
   "$TARGET_DIR/outputs/reports"
 
-# 从模板创建索引文件
+# Create index files from templates
 if [[ -n "$ASSETS" ]]; then
   cp "$ASSETS/dashboard-template.md" "$TARGET_DIR/wiki/index/Dashboard.md"
   cp "$ASSETS/concept-index-template.md" "$TARGET_DIR/wiki/index/Concept Index.md"
@@ -46,57 +82,68 @@ else
   touch "$TARGET_DIR/log.md"
 fi
 
-# 占位文件，确保空目录可被 git 追踪
+# Create purpose.md based on template
+if [[ -n "$ASSETS" ]]; then
+  case "$TEMPLATE" in
+    general)  cp "$ASSETS/purpose-template.md" "$TARGET_DIR/purpose.md" ;;
+    research) cp "$ASSETS/purpose-research-template.md" "$TARGET_DIR/purpose.md" ;;
+    reading)  cp "$ASSETS/purpose-reading-template.md" "$TARGET_DIR/purpose.md" ;;
+    project)  cp "$ASSETS/purpose-project-template.md" "$TARGET_DIR/purpose.md" ;;
+  esac
+else
+  touch "$TARGET_DIR/purpose.md"
+fi
+echo "Created purpose.md (template: $TEMPLATE)"
+
+# Gitkeep for empty directories
 touch "$TARGET_DIR/raw/.gitkeep" \
   "$TARGET_DIR/outputs/queries/.gitkeep" \
   "$TARGET_DIR/outputs/reports/.gitkeep"
 
-# 创建 .gitignore
-cat > "$TARGET_DIR/.gitignore" << 'EOF'
-# 敏感配置
+# Create .gitignore
+cat > "$TARGET_DIR/.gitignore" << 'GITEOF'
 .env
-
-# 系统文件
 .DS_Store
 Thumbs.db
+.cache/
+GITEOF
+echo "Created .gitignore"
 
-# Obsidian 内部缓存（可选排除）
-# .obsidian/workspace.json
-# .obsidian/workspace-mobile.json
-EOF
-echo "已创建 .gitignore"
-
-# 创建 .env 模板（API 配置）
+# Create .env template
 if [[ ! -f "$TARGET_DIR/.env" ]]; then
-  cat > "$TARGET_DIR/.env" << 'EOF'
-# Karpathy Wiki — PDF/图片解析 API 配置
-# 请填入你的 API URL 和 Token
+  cat > "$TARGET_DIR/.env" << 'ENVEOF'
 LAYOUT_API_URL=https://your-api-url
 LAYOUT_API_TOKEN=your-token
-EOF
-  echo "已创建 .env 模板，请填写 PDF/图片解析 API 配置"
+ENVEOF
+  echo "Created .env template"
 fi
 
-# 替换模板中的日期占位符
+# Create cache directory
+mkdir -p "$TARGET_DIR/.cache"
+echo "Created .cache/ (incremental cache)"
+
+# Replace date placeholders in templates
 if command -v sed &> /dev/null; then
   find "$TARGET_DIR" -name "*.md" -exec sed -i '' "s/YYYY-MM-DD/$TODAY/g" {} + 2>/dev/null || true
 fi
 
 echo ""
-echo "✅ 完成！目录结构："
+echo "Done! Structure:"
 echo "  $TARGET_DIR/"
-echo "  ├── raw/              # 原始资料（不可变）"
-echo "  ├── wiki/"
-echo "  │   ├── index/        # Dashboard + Concept Index + Source Index"
-echo "  │   └── <领域>/       # Wiki 文章（按领域子目录）"
-echo "  ├── outputs/"
-echo "  │   ├── queries/      # 查询结果"
-echo "  │   └── reports/      # Lint 报告"
-echo "  ├── .gitignore        # Git 排除规则"
-echo "  ├── .env              # API 配置（已被 .gitignore 排除）"
-echo "  └── log.md            # 操作日志（仅追加）"
+echo "  +-- purpose.md        # Wiki goals (edit this!)"
+echo "  +-- raw/              # Source materials (immutable)"
+echo "  +-- wiki/"
+echo "  |   +-- index/        # Dashboard + Concept Index + Source Index"
+echo "  |   +-- <domain>/     # Wiki articles"
+echo "  +-- outputs/"
+echo "  |   +-- queries/      # Query results"
+echo "  |   +-- reports/      # Lint reports"
+echo "  +-- .cache/           # Incremental cache"
+echo "  +-- .gitignore"
+echo "  +-- .env              # API config"
+echo "  +-- log.md            # Operation log"
 echo ""
-echo "下一步："
-echo "  1. 编辑 $TARGET_DIR/.env 填写 PDF/图片解析 API 配置（可选）"
-echo "  2. 用 Obsidian 打开 $TARGET_DIR 作为 vault"
-echo "  3. 运行 /karpathy-wiki ingest <文件或URL> 开始录入资料"
+echo "Next steps:"
+echo "  1. Edit $TARGET_DIR/purpose.md"
+echo "  2. Open $TARGET_DIR as Obsidian vault"
+echo "  3. Run /karpathy-wiki ingest <file-or-url>"
