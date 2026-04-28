@@ -223,9 +223,10 @@ cd ~/your-obsidian-vault
 
 ```
 karpathy-wiki/
-├── SKILL.md                              # 主技能定义（四阶段流水线 + 操作规程）
+├── SKILL.md                              # 主技能定义（原则 + 命令参考）
 ├── README.md                             # 本文件
 ├── references/
+│   ├── operations.md                     # 完整操作规程（9 个 Procedure）
 │   ├── frontmatter-schemas.md            # YAML frontmatter 规范
 │   ├── compilation-guide.md              # 文章编译写作规范
 │   ├── entity-types.md                   # 实体类型分类系统（7 种类型）
